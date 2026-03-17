@@ -1,0 +1,17 @@
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/controller/SupplierController.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/controller/ReorderController.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/dto/PurchaseOrderResponse.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/dto/ReorderRequest.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/dto/GoodsReceiptRequest.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/controller/PurchaseOrderController.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/event/ProcurementEventConsumer.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/ProcurementApplication.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/service/SupplierService.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/dto/ReorderResponse.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/dto/SupplierPerformanceRequest.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/dto/DeliveryScheduleResponse.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/dto/CreatePurchaseOrderRequest.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/event/ProcurementEventProducer.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/service/ProcurementService.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/dto/SupplierCatalogResponse.java
+/Users/randalkamradt/github/factory-platform/procurement/src/main/java/com/factory/procurement/config/KafkaConfig.java

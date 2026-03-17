@@ -1,0 +1,767 @@
+{
+  "project": "New Ecosystem",
+  "generated": "2026-03-17T16:37:45.221Z",
+  "services": [
+    {
+      "id": "bom-management",
+      "name": "BOMManagementService",
+      "purpose": "Owns versioned Bill of Materials, product definitions, component specifications, and material requirements calculations",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/boms",
+          "description": "create new BOM version for a product"
+        },
+        {
+          "method": "GET",
+          "path": "/boms/{productId}/versions/{version}",
+          "description": "retrieve specific BOM version with full component hierarchy"
+        },
+        {
+          "method": "GET",
+          "path": "/boms/{productId}/latest",
+          "description": "get latest BOM version for a product"
+        },
+        {
+          "method": "POST",
+          "path": "/boms/{bomId}/explode",
+          "description": "calculate material requirements for given production quantity"
+        },
+        {
+          "method": "GET",
+          "path": "/components/{componentId}/specifications",
+          "description": "get component specifications and requirements"
+        },
+        {
+          "method": "POST",
+          "path": "/boms/{bomId}/validate",
+          "description": "validate BOM for circular dependencies and completeness"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "bom.version.published",
+          "description": "new BOM version is published and ready for use"
+        },
+        {
+          "direction": "produces",
+          "topic": "bom.component.specification.changed",
+          "description": "component specifications or requirements have been updated"
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "inventory",
+      "name": "InventoryService",
+      "purpose": "Tracks stock levels, locations, reservations, and movements for raw materials, components, and finished goods",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/inventory/check-availability",
+          "description": "check availability for list of materials with quantities"
+        },
+        {
+          "method": "POST",
+          "path": "/inventory/reserve",
+          "description": "reserve materials for a production order"
+        },
+        {
+          "method": "POST",
+          "path": "/inventory/allocate",
+          "description": "allocate reserved materials for immediate use"
+        },
+        {
+          "method": "POST",
+          "path": "/inventory/movements",
+          "description": "record stock movements (receipts, consumption, transfers)"
+        },
+        {
+          "method": "GET",
+          "path": "/inventory/stock/{materialId}",
+          "description": "get current stock levels and locations for a material"
+        },
+        {
+          "method": "POST",
+          "path": "/inventory/release-reservation",
+          "description": "release reserved materials when production completes or cancels"
+        },
+        {
+          "method": "GET",
+          "path": "/inventory/locations/{locationId}/stock",
+          "description": "get all stock at a specific location"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "inventory.stock.changed",
+          "description": "stock level changed for a material at a location"
+        },
+        {
+          "direction": "produces",
+          "topic": "inventory.material.reserved",
+          "description": "materials reserved for production order"
+        },
+        {
+          "direction": "produces",
+          "topic": "inventory.stock.movement",
+          "description": "material moved between locations or consumed/received"
+        },
+        {
+          "direction": "produces",
+          "topic": "inventory.low.stock.alert",
+          "description": "material has fallen below reorder point"
+        },
+        {
+          "direction": "consumes",
+          "topic": "bom.version.published",
+          "description": "new BOM published - may need to track new materials"
+        }
+      ],
+      "dependencies": [
+        "bom-management"
+      ]
+    },
+    {
+      "id": "compliance",
+      "name": "ComplianceService",
+      "purpose": "Authorizes and logs all material transfers with audit trail, acting as gatekeeper for material movements",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/compliance/authorize-transfer",
+          "description": "authorize material transfer request (currently always approves)"
+        },
+        {
+          "method": "POST",
+          "path": "/compliance/log-movement",
+          "description": "log completed material movement with full context"
+        },
+        {
+          "method": "GET",
+          "path": "/compliance/audit-trail",
+          "description": "query audit trail by material, location, time range, or transfer type"
+        },
+        {
+          "method": "POST",
+          "path": "/compliance/validate-transfer",
+          "description": "validate transfer request against current compliance rules"
+        },
+        {
+          "method": "GET",
+          "path": "/compliance/reports/{type}",
+          "description": "generate compliance reports for auditing purposes"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "compliance.transfer.authorized",
+          "description": "material transfer has been authorized and can proceed"
+        },
+        {
+          "direction": "produces",
+          "topic": "compliance.movement.logged",
+          "description": "material movement has been recorded in audit trail"
+        },
+        {
+          "direction": "produces",
+          "topic": "compliance.violation.detected",
+          "description": "compliance rule violation detected (future use)"
+        },
+        {
+          "direction": "consumes",
+          "topic": "inventory.stock.movement",
+          "description": "log all inventory movements for audit trail"
+        },
+        {
+          "direction": "consumes",
+          "topic": "inventory.material.reserved",
+          "description": "log material reservations for audit trail"
+        }
+      ],
+      "dependencies": [
+        "inventory"
+      ]
+    },
+    {
+      "id": "procurement",
+      "name": "ProcurementService",
+      "purpose": "Manages supplier relationships, purchase orders, and material purchasing workflows including automated reordering",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/purchase-orders",
+          "description": "create new purchase order for materials"
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders/{poId}",
+          "description": "get purchase order status and details"
+        },
+        {
+          "method": "POST",
+          "path": "/purchase-orders/{poId}/receive",
+          "description": "record goods receipt and update PO status"
+        },
+        {
+          "method": "GET",
+          "path": "/suppliers/{supplierId}/catalog",
+          "description": "search supplier catalog for available materials"
+        },
+        {
+          "method": "POST",
+          "path": "/suppliers/{supplierId}/performance",
+          "description": "update supplier performance metrics"
+        },
+        {
+          "method": "POST",
+          "path": "/reorder",
+          "description": "create purchase orders for materials below reorder points"
+        },
+        {
+          "method": "GET",
+          "path": "/purchase-orders/delivery-schedule",
+          "description": "get expected delivery schedule for planning"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "procurement.purchase.order.created",
+          "description": "new purchase order created and sent to supplier"
+        },
+        {
+          "direction": "produces",
+          "topic": "procurement.materials.ordered",
+          "description": "materials ordered with expected delivery date"
+        },
+        {
+          "direction": "produces",
+          "topic": "procurement.goods.received",
+          "description": "materials received from supplier and ready for inventory"
+        },
+        {
+          "direction": "produces",
+          "topic": "procurement.supplier.performance.updated",
+          "description": "supplier performance metrics have been updated"
+        },
+        {
+          "direction": "consumes",
+          "topic": "inventory.low.stock.alert",
+          "description": "material has fallen below reorder point - triggers purchasing"
+        },
+        {
+          "direction": "consumes",
+          "topic": "bom.component.specification.changed",
+          "description": "component specs changed - may affect supplier requirements"
+        }
+      ],
+      "dependencies": [
+        "inventory",
+        "bom-management"
+      ]
+    },
+    {
+      "id": "warehouse",
+      "name": "WarehouseService",
+      "purpose": "Manages physical receiving, storage, picking, packing, and shipping operations for all materials and products",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/receiving/goods",
+          "description": "receive goods from suppliers with quality verification"
+        },
+        {
+          "method": "POST",
+          "path": "/picking/orders/{orderId}",
+          "description": "pick materials for production orders"
+        },
+        {
+          "method": "POST",
+          "path": "/shipping/products",
+          "description": "pack and ship finished products to customers"
+        },
+        {
+          "method": "POST",
+          "path": "/transfers",
+          "description": "transfer materials between storage locations"
+        },
+        {
+          "method": "POST",
+          "path": "/inventory/reconcile",
+          "description": "reconcile physical vs system inventory counts"
+        },
+        {
+          "method": "GET",
+          "path": "/locations/{locationId}/capacity",
+          "description": "query storage location capacity and utilization"
+        },
+        {
+          "method": "POST",
+          "path": "/dock/schedule",
+          "description": "schedule dock appointments for receiving/shipping"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "warehouse.goods.received",
+          "description": "materials physically received and stored"
+        },
+        {
+          "direction": "produces",
+          "topic": "warehouse.materials.picked",
+          "description": "materials picked and ready for production"
+        },
+        {
+          "direction": "produces",
+          "topic": "warehouse.products.shipped",
+          "description": "finished products shipped to customer"
+        },
+        {
+          "direction": "produces",
+          "topic": "warehouse.inventory.discrepancy",
+          "description": "physical count differs from system inventory"
+        },
+        {
+          "direction": "consumes",
+          "topic": "procurement.goods.received",
+          "description": "schedule physical receiving of purchased materials"
+        },
+        {
+          "direction": "consumes",
+          "topic": "inventory.material.reserved",
+          "description": "schedule picking for reserved materials"
+        },
+        {
+          "direction": "consumes",
+          "topic": "compliance.transfer.authorized",
+          "description": "execute authorized material transfers"
+        }
+      ],
+      "dependencies": [
+        "procurement",
+        "inventory",
+        "compliance"
+      ]
+    },
+    {
+      "id": "production-planning",
+      "name": "ProductionPlanningService",
+      "purpose": "Orchestrates production schedules, work orders, capacity planning, and material requirements planning across all manufacturing resources",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/production-schedules",
+          "description": "create production schedule from demand requirements"
+        },
+        {
+          "method": "POST",
+          "path": "/work-orders",
+          "description": "generate work orders for workshops and assembly lines"
+        },
+        {
+          "method": "POST",
+          "path": "/production-orders",
+          "description": "create production order with material reservations"
+        },
+        {
+          "method": "GET",
+          "path": "/production-orders/{orderId}/feasibility",
+          "description": "check production feasibility against capacity and materials"
+        },
+        {
+          "method": "PUT",
+          "path": "/production-schedules/{scheduleId}/reschedule",
+          "description": "reschedule production based on delays or constraints"
+        },
+        {
+          "method": "GET",
+          "path": "/capacity/utilization",
+          "description": "query current capacity utilization across all resources"
+        },
+        {
+          "method": "GET",
+          "path": "/production-orders/{orderId}/status",
+          "description": "get production order status and progress"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "production.order.created",
+          "description": "new production order created with material requirements"
+        },
+        {
+          "direction": "produces",
+          "topic": "production.work.order.scheduled",
+          "description": "work order assigned to workshop or assembly line"
+        },
+        {
+          "direction": "produces",
+          "topic": "production.schedule.changed",
+          "description": "production schedule updated due to constraints or delays"
+        },
+        {
+          "direction": "produces",
+          "topic": "production.capacity.constraint",
+          "description": "capacity bottleneck detected requiring intervention"
+        },
+        {
+          "direction": "consumes",
+          "topic": "bom.version.published",
+          "description": "new BOM affects material requirements planning"
+        },
+        {
+          "direction": "consumes",
+          "topic": "inventory.stock.changed",
+          "description": "stock changes affect production feasibility"
+        },
+        {
+          "direction": "consumes",
+          "topic": "inventory.low.stock.alert",
+          "description": "material shortage may impact production schedules"
+        }
+      ],
+      "dependencies": [
+        "bom-management",
+        "inventory"
+      ]
+    },
+    {
+      "id": "quality-assurance",
+      "name": "QualityAssuranceService",
+      "purpose": "Manages quality standards, inspection processes, test execution, and quality certifications throughout the manufacturing lifecycle",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/inspections/schedule",
+          "description": "schedule quality inspections for materials, components, or products"
+        },
+        {
+          "method": "POST",
+          "path": "/inspections/{inspectionId}/results",
+          "description": "record inspection results and quality measurements"
+        },
+        {
+          "method": "GET",
+          "path": "/quality/history/{materialId}",
+          "description": "query quality history and defect patterns for a material"
+        },
+        {
+          "method": "POST",
+          "path": "/quality/standards",
+          "description": "create or update quality standards and inspection procedures"
+        },
+        {
+          "method": "GET",
+          "path": "/quality/certificates/{batchId}",
+          "description": "generate quality certificates for compliant batches"
+        },
+        {
+          "method": "POST",
+          "path": "/quality/failures/{failureId}/escalate",
+          "description": "escalate quality failures and trigger corrective actions"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "quality.inspection.completed",
+          "description": "inspection completed with pass/fail results and measurements"
+        },
+        {
+          "direction": "produces",
+          "topic": "quality.failure.detected",
+          "description": "quality failure detected requiring corrective action"
+        },
+        {
+          "direction": "produces",
+          "topic": "quality.certificate.issued",
+          "description": "quality certificate issued enabling material use or shipping"
+        },
+        {
+          "direction": "produces",
+          "topic": "quality.trend.alert",
+          "description": "statistical process control violation detected"
+        },
+        {
+          "direction": "consumes",
+          "topic": "procurement.goods.received",
+          "description": "schedule incoming inspection for received materials"
+        },
+        {
+          "direction": "consumes",
+          "topic": "warehouse.goods.received",
+          "description": "coordinate with physical receipt for inspection scheduling"
+        }
+      ],
+      "dependencies": [
+        "procurement",
+        "warehouse"
+      ]
+    },
+    {
+      "id": "machining-workshop",
+      "name": "MachiningWorkshopService",
+      "purpose": "Manages CNC machines, lathes, mills scheduling and machining work order execution with operator assignments",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/work-orders/{orderId}/accept",
+          "description": "accept machining work order from production planning"
+        },
+        {
+          "method": "POST",
+          "path": "/work-orders/{orderId}/schedule",
+          "description": "schedule work on specific machines or general machining pool"
+        },
+        {
+          "method": "PUT",
+          "path": "/work-orders/{orderId}/progress",
+          "description": "update work order progress through setup, machining, inspection stages"
+        },
+        {
+          "method": "POST",
+          "path": "/machines/{machineId}/status",
+          "description": "report machine status, downtime, or maintenance requirements"
+        },
+        {
+          "method": "POST",
+          "path": "/work-orders/{orderId}/consumption",
+          "description": "track material consumption, scrap rates, and yield"
+        },
+        {
+          "method": "POST",
+          "path": "/operators/{operatorId}/assign",
+          "description": "assign qualified operators to machines and work orders"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "machining.work.order.completed",
+          "description": "machining work completed and component ready for next production stage"
+        },
+        {
+          "direction": "produces",
+          "topic": "machining.machine.maintenance.required",
+          "description": "machine breakdown or scheduled maintenance affecting production capacity"
+        },
+        {
+          "direction": "produces",
+          "topic": "machining.quality.issue.detected",
+          "description": "machining quality problem detected requiring possible rework"
+        },
+        {
+          "direction": "produces",
+          "topic": "machining.material.consumed",
+          "description": "raw material consumed in machining process with scrap tracking"
+        },
+        {
+          "direction": "consumes",
+          "topic": "production.work.order.scheduled",
+          "description": "work order assigned to machining workshop for execution"
+        },
+        {
+          "direction": "consumes",
+          "topic": "quality.inspection.completed",
+          "description": "quality results may require rework or process adjustments"
+        },
+        {
+          "direction": "consumes",
+          "topic": "inventory.material.reserved",
+          "description": "confirms raw materials available for machining work order"
+        }
+      ],
+      "dependencies": [
+        "production-planning",
+        "quality-assurance",
+        "inventory"
+      ]
+    },
+    {
+      "id": "fabrication-workshop",
+      "name": "FabricationWorkshopService",
+      "purpose": "Manages welding stations, cutting equipment, forming machines scheduling and fabrication work order execution with operator certifications",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/work-orders/{orderId}/accept",
+          "description": "accept fabrication work order from production planning"
+        },
+        {
+          "method": "POST",
+          "path": "/work-orders/{orderId}/schedule",
+          "description": "schedule work on specific equipment or general fabrication pool"
+        },
+        {
+          "method": "PUT",
+          "path": "/work-orders/{orderId}/progress",
+          "description": "update work order progress through cutting, forming, welding, finishing stages"
+        },
+        {
+          "method": "POST",
+          "path": "/equipment/{equipmentId}/status",
+          "description": "report equipment status, downtime, or maintenance requirements"
+        },
+        {
+          "method": "POST",
+          "path": "/work-orders/{orderId}/consumption",
+          "description": "track material consumption, waste rates, and rework"
+        },
+        {
+          "method": "POST",
+          "path": "/operators/{operatorId}/assign",
+          "description": "assign certified operators to welding or specialized fabrication processes"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "fabrication.work.order.completed",
+          "description": "fabrication work completed and component ready for next production stage"
+        },
+        {
+          "direction": "produces",
+          "topic": "fabrication.equipment.maintenance.required",
+          "description": "equipment breakdown or scheduled maintenance affecting production capacity"
+        },
+        {
+          "direction": "produces",
+          "topic": "fabrication.quality.issue.detected",
+          "description": "fabrication quality problem detected requiring possible rework"
+        },
+        {
+          "direction": "produces",
+          "topic": "fabrication.material.consumed",
+          "description": "material consumed in fabrication process with waste tracking"
+        },
+        {
+          "direction": "consumes",
+          "topic": "production.work.order.scheduled",
+          "description": "work order assigned to fabrication workshop for execution"
+        },
+        {
+          "direction": "consumes",
+          "topic": "quality.inspection.completed",
+          "description": "quality results may require rework or process adjustments"
+        },
+        {
+          "direction": "consumes",
+          "topic": "inventory.material.reserved",
+          "description": "confirms materials available for fabrication work order"
+        }
+      ],
+      "dependencies": [
+        "production-planning",
+        "quality-assurance",
+        "inventory"
+      ]
+    },
+    {
+      "id": "assembly",
+      "name": "AssemblyService",
+      "purpose": "Manages final product assembly line operations, workstation scheduling, and component integration into finished products",
+      "tech": "Spring Boot",
+      "apis": [
+        {
+          "method": "POST",
+          "path": "/assembly-orders/{orderId}/accept",
+          "description": "accept assembly order from production planning"
+        },
+        {
+          "method": "POST",
+          "path": "/assembly-orders/{orderId}/schedule",
+          "description": "schedule work on assembly lines or workstations"
+        },
+        {
+          "method": "PUT",
+          "path": "/assembly-orders/{orderId}/progress",
+          "description": "update assembly progress through build stages"
+        },
+        {
+          "method": "POST",
+          "path": "/lines/{lineId}/status",
+          "description": "report line status, downtime, or bottlenecks"
+        },
+        {
+          "method": "POST",
+          "path": "/assembly-orders/{orderId}/consumption",
+          "description": "track component consumption and assembly yield"
+        },
+        {
+          "method": "POST",
+          "path": "/operators/{operatorId}/assign",
+          "description": "assign operators to specialized assembly tasks"
+        }
+      ],
+      "events": [
+        {
+          "direction": "produces",
+          "topic": "assembly.order.completed",
+          "description": "finished product ready for shipping or final inspection"
+        },
+        {
+          "direction": "produces",
+          "topic": "assembly.line.breakdown",
+          "description": "assembly line downtime affecting production capacity"
+        },
+        {
+          "direction": "produces",
+          "topic": "assembly.quality.issue.detected",
+          "description": "assembly problem detected requiring possible rework"
+        },
+        {
+          "direction": "produces",
+          "topic": "assembly.component.consumed",
+          "description": "component consumed in assembly process with yield tracking"
+        },
+        {
+          "direction": "consumes",
+          "topic": "production.work.order.scheduled",
+          "description": "work order assigned to assembly line for execution"
+        },
+        {
+          "direction": "consumes",
+          "topic": "machining.work.order.completed",
+          "description": "machined components available for assembly"
+        },
+        {
+          "direction": "consumes",
+          "topic": "fabrication.work.order.completed",
+          "description": "fabricated components available for assembly"
+        },
+        {
+          "direction": "consumes",
+          "topic": "quality.inspection.completed",
+          "description": "quality results may require rework or process adjustments"
+        },
+        {
+          "direction": "consumes",
+          "topic": "inventory.material.reserved",
+          "description": "confirms all components available for assembly"
+        }
+      ],
+      "dependencies": [
+        "production-planning",
+        "machining-workshop",
+        "fabrication-workshop",
+        "quality-assurance",
+        "inventory"
+      ]
+    }
+  ]
+}

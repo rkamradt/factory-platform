@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.factory.inventory.InventoryApplicationTests
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.425 s -- in com.factory.inventory.InventoryApplicationTests
